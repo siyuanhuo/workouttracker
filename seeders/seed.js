@@ -1,7 +1,9 @@
 let mongoose = require("mongoose");
 let db = require("../models");
 
-mongoose.connect("mongodb://localhost/workout", {
+// mongodb+srv://workout_tracker:george93@cluster0.bnqzg.mongodb.net/workout_tracker?retryWrites=true&w=majority
+// mongodb://localhost/workout
+mongoose.connect("mongodb+srv://workout_tracker:george93@cluster0.bnqzg.mongodb.net/workout_tracker?retryWrites=true&w=majority", {
   useNewUrlParser: true,
   useFindAndModify: false,
   useUnifiedTopology: true
@@ -125,13 +127,33 @@ let workoutSeed = [
   }
 ];
 
-db.Workout.deleteMany({})
-  .then(() => db.Workout.collection.insertMany(workoutSeed))
-  .then(data => {
-    console.log(data.result.n + " records inserted!");
-    process.exit(0);
-  })
-  .catch(err => {
-    console.error(err);
-    process.exit(1);
-  });
+
+var workoutCountIndex = 0;
+
+function exitProcess() {
+	workoutCountIndex += 1;
+
+	if (workoutCountIndex === workoutSeed.length) {
+		process.exit(0);
+	}
+}
+
+function createWorkout(index) {
+	db.Exercise.create(workoutSeed[index].exercises[0]).then(({ _id }) => {
+		// console.log("index: " + index);
+		db.Workout.create({
+			day: workoutSeed[index].day,
+			exercises: [_id],
+		}).then(() => {
+			exitProcess();
+		});
+	});
+}
+
+db.Exercise.deleteMany({}).then(() => {
+	db.Workout.deleteMany({}).then(() => {
+		for (var i = 0; i < workoutSeed.length; i++) {
+			createWorkout(i);
+		}
+	});
+});
